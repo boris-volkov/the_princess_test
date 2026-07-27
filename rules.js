@@ -160,24 +160,22 @@ const RULES = [
 	]
 ];
 
-/* What each screen will accept: the digit the answer has to start with —
-   so the rule just taught is the one being used — and what she must
-   then say back. */
+/* What each screen will accept: the number she has to say back, the
+   digit the answer must start with so that the rule just taught is the
+   one doing the work, and what to call that rule when somebody reaches
+   the number by another road — which is easy to do, since rule I alone
+   can produce most of these. */
 const ASSERTS = [
-	["1",  "1643"],
-	["3",  "123123"],
-	["4",  "123"],
-	["5",  "375"],
-	["6",  "1919"],
-	["7",  "222"],
-	["53", "47747"]
+	{ start: "1",  answer: "1643",   rule: "rule I" },
+	{ start: "3",  answer: "123123", rule: "rule II" },
+	{ start: "4",  answer: "123",    rule: "rule III" },
+	{ start: "5",  answer: "375",    rule: "rule IV" },
+	{ start: "6",  answer: "1919",   rule: "rule V" },
+	{ start: "7",  answer: "222",    rule: "rule VI" },
+	{ start: "53", answer: "47747",  rule: "rules IV and II" }
 ];
 
 const LAST = RULES.length - 1;   /* the summary; nothing to answer */
-
-function passes(input, i) {
-	return input.startsWith(ASSERTS[i][0]) && princess(input) === ASSERTS[i][1];
-}
 
 /* ── the flow ────────────────────────────────────────────────────── */
 
@@ -203,11 +201,21 @@ function answer(line) {
 	if (i === LAST) return leave();     /* any Enter, as the screen says */
 	if (line === "") return;
 
+	const want = ASSERTS[i];
 	const reply = princess(line);
+
 	if (reply === "") print(aside("the princess says nothing"));
 	else print(note("the princess would return: " + reply));
 
-	if (!passes(line, i)) return;
+	if (reply !== want.answer) return;
+
+	/* Getting the number is not the point — she is asking to see the rule
+	   she has just taught, and refusing without saying so is a dead end:
+	   the screen agrees you got the number and then does nothing. */
+	if (!line.startsWith(want.start)) {
+		print(warn("that is the number, but not by " + want.rule));
+		return;
+	}
 
 	i++;
 	print(good("\nCorrect\n"));
