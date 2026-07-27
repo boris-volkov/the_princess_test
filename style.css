@@ -1,0 +1,310 @@
+/* ------------------------------------------------------------------
+   the_princess_test
+
+   The same terminal the landing page is built out of, and the same two
+   looks — dark and light, remembered under the same localStorage key,
+   so whichever one you chose over there is the one you get here.
+
+   Every colour is a custom property named for its role rather than its
+   hue (`head`, `note`, `accent`), which is what lets the light theme
+   answer each role with whatever paper wants instead of a lighter
+   version of the dark one.
+   ------------------------------------------------------------------ */
+
+:root {
+	--mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
+	        Consolas, 'Courier New', monospace;
+
+	--status-h: 25px;
+	--screen-w: 900px;
+	--gutter:   24px;
+}
+
+:root,
+:root[data-theme="dark"] {
+	--page:       #0b0d10;
+	--screen:     #0e1116;
+	--border:     #20242b;
+
+	--base:       #d6dbe2;
+	--dim:        #6b7280;
+	--head:       #d2a8ff;
+	--note:       #6cb6ff;
+	--sym:        #6b7280;
+	--error:      #ff7b72;
+	--accent:     #7ee787;   /* the rule digits, and the cursor */
+	--cursor:     #7ee787;
+
+	--status-bg:  #161b22;
+	--status-fg:  #8b949e;
+	--chip-bg:    #238636;
+	--chip-fg:    #eafff0;
+}
+
+/* Paper. */
+:root[data-theme="light"] {
+	--page:       #dcd8cc;
+	--screen:     #f5f2e9;
+	--border:     #d6d0c0;
+
+	--base:       #33302a;
+	--dim:        #8a8472;
+	--head:       #7a4ca6;
+	--note:       #1f6fb2;
+	--sym:        #a39c88;
+	--error:      #b3402e;
+	--accent:     #4f7a28;
+	--cursor:     #33302a;
+
+	--status-bg:  #2b2b28;
+	--status-fg:  #cfc9ba;
+	--chip-bg:    #f5f2e9;
+	--chip-fg:    #2b2b28;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+	margin: 0;
+	height: 100%;
+	background: var(--page);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px; height: 1px;
+	margin: -1px; padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* ── the machine ─────────────────────────────────────────────────── */
+
+.page {
+	min-height: 100dvh;
+	display: flex;
+	justify-content: center;
+	align-items: stretch;
+	padding: var(--gutter);
+	background: var(--page);
+	font-family: var(--mono);
+}
+
+.frame {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: var(--screen-w);
+	height: calc(100dvh - var(--gutter) * 2);
+}
+
+/* Fixed to the viewport with the scrollback moving inside it, the way a
+   real terminal window behaves — the page itself never scrolls. */
+.screen {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	overflow: hidden;
+	background: var(--screen);
+	color: var(--base);
+	font-size: 15px;
+	border: 1px solid var(--border);
+	border-radius: 2px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+}
+
+.tbody {
+	flex: 1 1 auto;
+	overflow: auto;
+	padding: 16px 18px 22px;
+}
+
+.content {
+	max-width: 72ch;
+	min-height: 100%;
+}
+
+.tbody::-webkit-scrollbar { width: 10px; height: 10px; }
+.tbody::-webkit-scrollbar-thumb { background: rgba(127,127,127,.22); border-radius: 7px; }
+.tbody::-webkit-scrollbar-track { background: transparent; }
+.tbody { scrollbar-width: thin; scrollbar-color: rgba(127,127,127,.22) transparent; }
+
+/* ── scrollback ──────────────────────────────────────────────────── */
+
+/* `pre-wrap`, not `pre`: the indentation in the rules is real spaces and
+   has to survive, but a line too long for a phone should fold rather
+   than push the whole terminal sideways. Nothing here is aligned by
+   measurement, so folding costs a column of examples and no more. */
+.row       { white-space: pre-wrap; line-height: 1.6; }
+.row.blank { height: 0.85em; }
+
+.seg-body   { color: var(--base); }
+.seg-dim    { color: var(--dim); }
+.seg-head   { color: var(--head); font-weight: 700; letter-spacing: .01em; }
+.seg-note   { color: var(--note); }
+.seg-good   { color: var(--accent); font-weight: 600; }
+.seg-warn   { color: var(--error); font-weight: 600; }
+.seg-accent { color: var(--accent); font-weight: 700; }
+.seg-typed  { color: var(--base); }
+
+/* ── the prompt ──────────────────────────────────────────────────── */
+
+/* A real <input>, invisible, laid over styled text. The input takes the
+   keystrokes — and with them the mobile keyboard, the IME, backspace,
+   select-and-paste and the arrow keys, none of which had to be written
+   here. The spans behind it do the colouring, which no single input
+   could. The caret is hidden and the block below stands in for it. */
+.prompt {
+	position: relative;
+	white-space: pre-wrap;
+	line-height: 1.6;
+	margin-top: 6px;
+}
+
+.prompt[hidden] { display: none; }
+
+.cli {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	border: 0;
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	color: transparent;
+	font: inherit;
+	outline: none;
+	caret-color: transparent;
+}
+
+#p-label { color: var(--accent); font-weight: 600; }
+#p-input { color: var(--base); }
+
+.cursor {
+	display: inline-block;
+	width: 0.5em;
+	height: 1.02em;
+	background: var(--cursor);
+	vertical-align: -2px;
+	margin-left: 1px;
+	animation: blink 1.05s steps(1) infinite;
+}
+
+/* A cursor blinking at a keyboard that is not connected to it is a lie —
+   on a phone the input holds focus only after a tap. */
+.prompt:not(:focus-within) .cursor { animation: none; opacity: .3; }
+
+@keyframes blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
+
+/* ── modeline ────────────────────────────────────────────────────── */
+
+.status {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--status-h);
+	flex: 0 0 auto;
+	font-size: 12px;
+	background: var(--status-bg);
+	color: var(--status-fg);
+	user-select: none;
+	overflow: hidden;
+}
+
+.status-side {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	min-width: 0;
+}
+
+.status-side:last-child { flex: 0 0 auto; }
+
+/* Reverse-video blocks, full height, like vi's or tmux's. */
+.chip {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	padding: 0 11px;
+	font-weight: 600;
+	white-space: nowrap;
+	background: var(--chip-bg);
+	color: var(--chip-fg);
+}
+
+.status-note {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	padding: 0 11px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--status-fg);
+}
+
+.thbtn,
+.skip {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	padding: 0 11px;
+	border: 0;
+	background: transparent;
+	color: var(--status-fg);
+	font: inherit;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: filter .1s ease;
+}
+
+.thbtn:hover,
+.skip:hover { text-decoration: underline; filter: brightness(1.3); }
+
+.thbtn.active {
+	background: var(--chip-bg);
+	color: var(--chip-fg);
+	font-weight: 600;
+}
+
+/* The way past the rules for anyone without an Esc key to press. */
+.skip {
+	padding: 0 12px;
+	font-weight: 600;
+	background: var(--chip-bg);
+	color: var(--chip-fg);
+}
+
+.thbtn:focus-visible,
+.skip:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+/* ── narrow screens ──────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+	.page   { padding: 0; }
+	.frame  { height: 100dvh; }
+	.screen { border: 0; border-radius: 0; font-size: 13.5px; }
+	.tbody  { padding: 12px 12px 18px; }
+}
+
+/* ── without JavaScript ──────────────────────────────────────────── */
+
+/* The whole thing is a program, so there is no useful fallback — say so
+   plainly instead of leaving an empty black rectangle. */
+.noscript {
+	max-width: 46rem;
+	margin: 0 auto;
+	padding: 3rem 1.5rem;
+	color: var(--base);
+	font-family: var(--mono);
+	line-height: 1.7;
+}

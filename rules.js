@@ -1,241 +1,232 @@
-/**
- * Test user on rules one at a time. 
- * Assert a set of pre-determined output values
- * Make sure uesr know how to use all of the rules
- */
+/* ------------------------------------------------------------------
+   learning the rules
 
-const desired_rows = 24
+   Seven screens, each one a rule and a small exercise on it. You do not
+   move on by reading — you move on by sending a number that proves you
+   can use the rule, which is what `asserts` below pins down.
 
-function princess(input){
-	var head = input.charAt(0);
-	var tail = input.charAt(input.length - 1);
-	var rest = input.substring(1);
+   The colouring is roles, not escape codes: head() names a rule, note()
+   is notation and worked examples, body() is prose, and `backticks`
+   pick out the digit the rule is about. terminal.js does the rest.
+   ------------------------------------------------------------------ */
 
-	if (head == "1" && tail == "2")
-		return input.substring(1,input.length - 1);
-	else if (head == "3")
-		return princess(rest) + princess(rest);
-	else if (head == "4")
-		return princess(rest).split("").reverse().join("");
-	else if (head == "5")
-		return princess(rest).substring(1);
-	else if (head == "6")
-		return "1" + princess(rest);
-	else if (head == "7")
-		return "2" + princess(rest);
-	else
-		return "";
-}
+const { print, clear, ask, hide, keys, status,
+        head, body, note, aside, good, warn } = Term;
 
-const white = '\x1b[97m';
-const yellow = '\x1b[93m';
-const blue = '\x1b[94m';
-const red = '\x1b[91m';
-const green = '\x1b[92m';
+const READY = "Tell the princess you are ready: ";
+const TRY   = "Try a number: ";
+const ONWARD = "press ENTER for the tests: ";
 
-const INTRODUCTION = yellow + "There is a princess who lives far away,\n\r" + 
-	"She has a way with numbers, by the way.\n\r" + 
-	"She has this game she plays, a number game:\n\r"+
-	"You send her a number, she'll do the same.\n\r"+
-	"Her number will be in response to yours,\n\r"+
-	"And yes, She'll teach you how it works, of course.\n\r"+
-	"She will reward the one that meets her test,\n\r"+
-	"Just learn six rules and figure out the rest.\n\r"+
-	"The princess is waiting...\n\r"+ 
-	"First she will teach you the rules.\n\n\r"+
-	"(Already know the rules? press ESC)\n\n\r"+
-	green + "Tell the princess you are ready:"
+const INTRO = [
+	body(""),
+	aside("`the_princess_test`   —   a logic puzzle in six tests"),
+	body(""),
+	body("There is a princess who lives far away,\n" +
+	     "She has a way with numbers, by the way.\n" +
+	     "She has this game she plays, a number game:\n" +
+	     "You send her a number, she'll do the same.\n" +
+	     "Her number will be in response to yours,\n" +
+	     "And yes, she'll teach you how it works, of course.\n" +
+	     "She will reward the one that meets her test,\n" +
+	     "Just learn six rules and figure out the rest."),
+	body(""),
+	body("The princess is waiting...\n" +
+	     "First she will teach you the rules."),
+	body(""),
+	aside("press ENTER to begin   ·   Esc skips straight to the tests"),
+	body("")
+];
 
-const rules = 
+/* Each screen teaches one rule and then asks for a number that only
+   somebody who understood it could send. */
+const RULES = [
 	[
-		yellow + "Rule 0: notation\n\r"+ white + 
-		"▸ A single letter can be used to represent\n\r"+
-		"	either a single-digit, or a multi-digit number.\n\r"+
-		"	So x can be 2 or it can be 1234\n\r"+
-		"▸ No letter has any special meaning,\n\r"+
-		"	they are all just variables (a,b,x)\n\r"+
-		"▸ When you see variables next to each other,\n\r"+
-		"	it means concatenation, not multiplication\n\r"+
-		"	so if a = 543 and b = 987 ab means 543987\n\r"+
-		"	and 3a means 3543\n\r"+
-		"▸ a → b means: when you send the princess a,\n\r"+
-		"	       she will respond with b.\n\n\r"+
-		yellow + "Rule I: getting a response\n\r"+ white + 	
-		"		("+green+"1"+white+"a"+green+"2"+white+" → a)\n\r" + 
-		"Examples: 	"+green+"1"+white+"654"+green+"2"+white+" → 654\n\r"+
-		"		"+green+"1"+white+"192"+green+"2"+white+" → 192\n\r"+
-		"Play with the rule. Does it make sense?\n\r"+
-		"What number would you send to get 1643 back\n\r"+
-		"in the notation: Find an x such that: x → 1643\n\n\r",
+		head("Rule 0: notation"),
+		body(""),
+		body("▸ A single letter can be used to represent\n" +
+		     "    either a single-digit or a multi-digit number,\n" +
+		     "    so x can be 2 or it can be 1234\n" +
+		     "▸ No letter has any special meaning,\n" +
+		     "    they are all just variables (a, b, x)\n" +
+		     "▸ When you see variables next to each other\n" +
+		     "    it means concatenation, not multiplication,\n" +
+		     "    so if a = 543 and b = 987 then ab means 543987\n" +
+		     "    and 3a means 3543\n" +
+		     "▸ a → b means: when you send the princess a,\n" +
+		     "    she will respond with b"),
+		body(""),
+		head("Rule I: getting a response"),
+		note("            `1`a`2` → a"),
+		body(""),
+		note("Examples:   `1`654`2` → 654\n" +
+		     "            `1`192`2` → 192"),
+		body(""),
+		body("Play with the rule. Does it make sense?\n" +
+		     "What number would you send to get 1643 back?\n" +
+		     "In the notation: find an x such that"),
+		note("            x → 1643"),
+		body("")
+	],
 
-		yellow + "RULE II: doubling\n\r"+ 
-		"(if a → b then 3a → bb)\n\r"+ white +
-		"Examples:      Since 116432 → 1643\n\r"+
-		"	       then "+green+"3"+white+"116432 → 16431643\n\r"+
-		"		Since 1432 → 43\n\r"+
-		"		then "+green+"3"+white+"1432 → 4343\n\r"+
-		"                and "+green+"33"+white+"1432 → 43434343\n\r"+
-		"Using rule II:\n\r"+
-		"What number would you send to get 123123 back?\n\r"+
-		"                   x → 123123\n\n\n\r",
+	[
+		head("Rule II: doubling"),
+		note("            if a → b, then `3`a → bb"),
+		body(""),
+		note("Examples:   since   116432 → 1643\n" +
+		     "            then   `3`116432 → 16431643\n" +
+		     "            since     1432 → 43\n" +
+		     "            then     `3`1432 → 4343\n" +
+		     "            and     `33`1432 → 43434343"),
+		body(""),
+		body("Using rule II,\n" +
+		     "what number would you send to get 123123 back?"),
+		note("            x → 123123"),
+		body("")
+	],
 
-		yellow + "RULE III: reversal\n\r"+ 
-		"(if a → b, then 4a → b↩ (b with its digits reversed))\n\r"+ white +
-		"Example:      since 19872 → 987\n\r"+
-		"	      then "+green+"4"+white+"19872 → 789\n\r"+
-		"Use rule III to make her send back 123\n\r",
+	[
+		head("Rule III: reversal"),
+		note("            if a → b, then `4`a → b↩\n" +
+		     "            (b with its digits reversed)"),
+		body(""),
+		note("Example:    since   19872 → 987\n" +
+		     "            then   `4`19872 → 789"),
+		body(""),
+		body("Use rule III to make her send back 123"),
+		body("")
+	],
 
-		yellow + "Rule IV: ereasure\n\r"+
-		"(if a → b, then 5a→ ◌b (b with the first digit removed))\n\r"+ white +
-		"Example:     since  127432 → 2743\n\r"+
-		"	     then  "+green+"5"+white+"127432 → 743\n\r"+
-		"Use rule IV to make her send back 375\n\r",
+	[
+		head("Rule IV: erasure"),
+		note("            if a → b, then `5`a → ◌b\n" +
+		     "            (b with its first digit removed)"),
+		body(""),
+		note("Example:    since   127432 → 2743\n" +
+		     "            then   `5`127432 → 743"),
+		body(""),
+		body("Use rule IV to make her send back 375"),
+		body("")
+	],
 
-		yellow + "Rule V: addition(1) (if a → b then 6a → 1b)\n\r"+ white + 
-		"Example:      since 15552 → 555\n\r"+
-		"              then "+green+"6"+white+"15552 → 1555\n\r"+
-		"Use rule V to return 1919\n\r",
+	[
+		head("Rule V: addition (1)"),
+		note("            if a → b, then `6`a → 1b"),
+		body(""),
+		note("Example:    since   15552 → 555\n" +
+		     "            then   `6`15552 → 1555"),
+		body(""),
+		body("Use rule V to make her send back 1919"),
+		body("")
+	],
 
-		yellow + "Rule VI: addition(2) (if a → b then 7a → 2b)\n\r"+ white +
-		"Example:      since 13432 → 343\n\r"+
-		"              then "+green+"7"+white+"13432 → 2343\n\r"+
-		"Use rule VI to return 222\n\r",
+	[
+		head("Rule VI: addition (2)"),
+		note("            if a → b, then `7`a → 2b"),
+		body(""),
+		note("Example:    since   13432 → 343\n" +
+		     "            then   `7`13432 → 2343"),
+		body(""),
+		body("Use rule VI to make her send back 222"),
+		body("")
+	],
 
-		yellow + "Rule ∞: rules can be used in any combination\n\r"+ white +
-		"Example:      since   14342 →  434\n\r"+
-		"               and   "+green+"6"+white+"14342 → 1434       (addition(1))\n\r"+
-		"              then  "+green+"36"+white+"14342 → 14341434   (doubling)\n\r"+
-		"Use rules IV(ereasure) and II(doubling) to get the \n\r"+
-		"princess to send you the number 47747\n\r",
+	[
+		head("Rule ∞: the rules combine"),
+		body(""),
+		note("Example:    since     14342 → 434\n" +
+		     "            and      `6`14342 → 1434       (addition (1))\n" +
+		     "            then    `36`14342 → 14341434   (doubling)"),
+		body(""),
+		body("Use rule IV (erasure) and rule II (doubling)\n" +
+		     "to get the princess to send you the number 47747"),
+		body("")
+	],
 
-		red + "And those are all the rules.\n\n\r" + white + 
-		"Do not forget them:\n\n\n\r"+
-		"Rule I                        "+green+"1"+white+"a"+green+"2"+white+" → a\n\r"+
-		"Rule II        if a → b, then "+green+"3"+white+"a → bb\n\r"+
-		"Rule III       if a → b, then "+green+"4"+white+"a → b↩\n\r"+
-		"Rule IV        if a → b, then "+green+"5"+white+"a → ◌b\n\r"+
-		"Rule V         if a → b, then "+green+"6"+white+"a → 1b\n\r"+
-		"Rule VI        if a → b, then "+green+"7"+white+"a → 2b\n\n\r"+
-		"Now you are ready for the tests ↴\n\r"+
-		"Send the princess a ? if you need a reminder...\n\r"+
-		"Press ENTER to go to the tests"
+	[
+		warn("And those are all the rules."),
+		body(""),
+		body("Do not forget them:"),
+		body(""),
+		note("Rule I                        `1`a`2` → a\n" +
+		     "Rule II        if a → b, then `3`a → bb\n" +
+		     "Rule III       if a → b, then `4`a → b↩\n" +
+		     "Rule IV        if a → b, then `5`a → ◌b\n" +
+		     "Rule V         if a → b, then `6`a → 1b\n" +
+		     "Rule VI        if a → b, then `7`a → 2b"),
+		body(""),
+		body("Now you are ready for the tests ↴"),
+		aside("send the princess a ? during the tests for a reminder"),
+		body("")
 	]
+];
 
-// this is how we make sure they understand the rules
-const asserts = 
-	[    // (required number, test assert equal)   
-		["1","1643"],
-		["3","123123"],
-		["4", "123"],
-		["5", "375"],
-		["6", "1919"],
-		["7", "222"],
-		["53", "47747"]
-	]
+/* What each screen will accept: the digit the answer has to start with —
+   so the rule just taught is the one being used — and what she must
+   then say back. */
+const ASSERTS = [
+	["1",  "1643"],
+	["3",  "123123"],
+	["4",  "123"],
+	["5",  "375"],
+	["6",  "1919"],
+	["7",  "222"],
+	["53", "47747"]
+];
 
-/**
- * pass it the buffer, and where to look in the asserts aray
- */
-function test(input, i){
-	return ((input.startsWith(asserts[i][0])) && (princess(input) == asserts[i][1]));
+const LAST = RULES.length - 1;   /* the summary; nothing to answer */
+
+function passes(input, i) {
+	return input.startsWith(ASSERTS[i][0]) && princess(input) === ASSERTS[i][1];
 }
 
+/* ── the flow ────────────────────────────────────────────────────── */
 
-const term = new Terminal(
-	{
-		theme: {
-			background: "#006699",
-		},
-		rows: desired_rows,
-		cols: 60,
-		cursorBlink: true,
-		fontSize: Math.floor(innerHeight/(desired_rows*5/4)),
-		fontWeight: 700,
-	});
+let i = 0;
 
-term.open(document.getElementById('terminal'));
-
-const term_prompt = '\r\nTry a number: ';
-
-function runFakeTerminal() {
-	if (term._initialized) {
-		return;
+function show() {
+	print(RULES[i]);
+	if (i === LAST) {
+		status(null, "the rules");
+		ask(ONWARD, answer);
+	} else {
+		status(null, "rule " + (i + 1) + " of " + ASSERTS.length);
+		ask(TRY, answer);
 	}
-
-	term._initialized = true;
-
-	term.write('\x1b[97m'); // sets text color
-	term.write(INTRODUCTION);
-
-	var i = 0; 		// index to iterate through the rules
-	started = false;
-
-	var buffer = ""; // initialize an empty buffer. I think this can be accessed 
-	// through term._core.buffer instead of building manually
-
-	term.onKey(e => {
-		if (e.domEvent.keyCode === 27){
-			term.dispose();
-			location.replace("princess.html"); //this might be the fix: send to another html page with another terminal
-		}
-
-		if ([37,39,38,40].includes(e.domEvent.keyCode)) return; // disable arrow keys for now, they're buggy 
-
-		const printable = !e.domEvent.altKey && !e.domEvent.altGraphKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
-
-		if (started == false) { // started means they read the intro and are going through the rules now
-			term.reset();
-			buffer = "";
-			term.writeln(rules[0]);
-			prompt(term);
-			started = true;
-			return;
-		}
-
-		if (e.domEvent.keyCode === 13) 
-		{
-			if (buffer == "") return; // don't let them send an empty string
-
-			if (i == rules.length-1){
-				term.dispose(); //done learning rules.
-				location.replace("princess.html");
-			}
-
-			term.writeln("\n\rthe princess would return: " + princess(buffer));
-			if (test(buffer, i)){
-				i++;
-				term.writeln(green + "\n\n\n    Correct\n\n\n\n\r");
-				term.writeln(rules[i]);
-				if (i == rules.length - 1) return; // so we don't prompt after the rules print out
-				// is it stupid to check this twice? probably.		
-			}
-
-			buffer = "";
-			prompt(term);
-
-		} else if (e.domEvent.keyCode === 8) { // backspace
-			// Do not delete the prompt
-			if (term._core.buffer.x > term_prompt.length - 2) {
-				buffer = buffer.substring(0, buffer.length - 1);
-				term.write('\b \b');
-			}
-		} else if (printable) {
-			buffer = buffer + e.key;
-			term.write(e.key);
-		}
-
-	});
-
-	window.addEventListener("resize", resize_term);
-	function resize_term(){
-		let font_height = Math.floor(innerHeight/(desired_rows*5/4));
-		term.setOption("fontSize", font_height);
-	}
-
 }
 
-function prompt(term) {
-	term.write(term_prompt);
+function begin() {
+	clear();
+	show();
 }
 
-runFakeTerminal();
+function answer(line) {
+	if (i === LAST) return leave();     /* any Enter, as the screen says */
+	if (line === "") return;
+
+	const reply = princess(line);
+	if (reply === "") print(aside("the princess says nothing"));
+	else print(note("the princess would return: " + reply));
+
+	if (!passes(line, i)) return;
+
+	i++;
+	print(good("\nCorrect\n"));
+	show();
+}
+
+/* The rules are optional; anyone who has them can go straight to the
+   tests. `replace` rather than a new entry, so Back from the tests
+   leaves the way it came instead of restarting the introduction. */
+function leave() {
+	hide();
+	location.replace("princess.html");
+}
+
+keys(e => {
+	if (e.key === "Escape") { leave(); return true; }
+	return false;
+});
+
+print(INTRO);
+status("rules", "the introduction");
+ask(READY, begin);

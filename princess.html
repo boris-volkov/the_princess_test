@@ -1,26 +1,66 @@
 <!DOCTYPE html>
-<html>
-  <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  
-  
-  <link rel="stylesheet" href="xterm/css/xterm.css" />
-  <script src="xterm/lib/xterm.js"></script>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>the_princess_test &mdash; the six tests</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Boris Volkov">
+<meta name="description" content="The six tests. Send the princess a number that makes her answer the way the test asks.">
 
-  <title>The Princess Test</title>
-<style>
-body { background-color: #006699; }
-</style>
+<!-- Set the theme before first paint, from the key the landing page
+     writes, so arriving here from there never flashes the other look. -->
+<script>
+(function () {
+	try {
+		var t = localStorage.getItem('bv-theme');
+		if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+	} catch (e) {}
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
+<body>
 
+<!-- Empty chrome. princess.js fills the scrollback. Note the input is
+     not inputmode="numeric" as it is on the rules page: here ? asks for
+     the rules again, and a number pad has no ? on it. -->
+<div class="page">
+	<div class="frame">
+		<div class="screen">
 
-  <body>
-   <main>
-      <div id="terminal" style="border-style: inset;"></div>
-      <script src="princess.js"></script>
-     </div>
-    </main>
-  </body>
+			<h1 class="sr-only">The Princess Test &mdash; the six tests</h1>
+
+			<div class="tbody" id="tbody">
+				<div class="content">
+					<div id="log" role="log" aria-live="polite"></div>
+					<div class="prompt" id="promptline" hidden><span id="p-label"></span><span id="p-input"></span><span class="cursor" aria-hidden="true"></span><input id="cli" class="cli" aria-label="your answer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+				</div>
+			</div>
+
+			<div class="status">
+				<div class="status-side"><span class="chip" id="s-chip">tests</span><span class="status-note" id="s-note"></span></div>
+				<div class="status-side"><a class="skip" href="index.html" title="read the rules again">rules &rsaquo;</a><button type="button" class="thbtn" data-set-theme="dark">dark</button><button type="button" class="thbtn" data-set-theme="light">light</button></div>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+<noscript>
+	<div class="noscript">
+		<p>The Princess Test is a program, and this one runs in the browser
+		&mdash; with JavaScript turned off there is nothing here to read.</p>
+		<p>The source is at
+		<a href="https://github.com/boris-volkov/the_princess_test">github.com/boris-volkov/the_princess_test</a>.</p>
+	</div>
+</noscript>
+
+<script src="terminal.js"></script>
+<script src="princess.js"></script>
+<script src="tests.js"></script>
+</body>
 </html>
